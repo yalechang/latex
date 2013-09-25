@@ -1,0 +1,469 @@
+\documentclass{beamer}
+\mode<presentation>
+\usetheme{Madrid}
+
+% Document information
+\title{Multi-source and Multi-view Spectral Clustering}
+\author{Yale Chang}
+\institute{Northeastern University}
+\date{September 16, 2013}
+
+% Packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{dsfont}
+\usepackage[retainorgcmds]{IEEEtrantools}
+\newtheorem{proposition}[theorem]{Proposition}
+\DeclareMathOperator{\Tr}{Tr}
+\DeclareMathOperator{\HSIC}{HSIC}
+
+\begin{document}
+
+% Make title page
+\begin{frame}
+	\titlepage
+\end{frame}
+
+% Outline
+%\begin{frame}
+%\frametitle{Outline}
+%\begin{enumerate}
+%	\item{Motivation}
+%	\item{Introduction of Spectral Clustering}
+%	\item{Co-regularized Multi-source Spectral Clustering}
+%	\item{Multiple Non-Redundant Spectral Clustering}
+%	\item{Conclusion and Future Work}
+%\end{enumerate}
+%\end{frame}
+
+% Make table of contents
+\tableofcontents
+
+% Motivation
+\section{Motivation}
+\subsection{Why Multi-source}
+
+% Application of Multi-source clustering
+\begin{frame}
+\frametitle{Why Multi-source: Applications}
+\begin{block}{}
+Many real-world datasets have representations in the form of multiple sources.
+How to utilize multi-source information to enhance clustering performance ?
+\end{block}
+	\begin{columns}
+		\column{.33\textwidth}
+		\begin{exampleblock}{Webpages Clustering}
+		Webpages usually consist of both the page-text and hyperlink information;
+		\begin{figure}
+			\includegraphics[height=2cm]{webpages_clustering}
+		\end{figure}
+		\end{exampleblock}
+		\column{.33\textwidth}
+		\begin{exampleblock}{Images Clustering}
+		Images on the web have captions associated with them;
+		\begin{figure}
+			\includegraphics[height=2.5cm]{image_retrieval.png}
+		\end{figure}
+		\end{exampleblock}
+		\column{.33\textwidth}
+		\begin{exampleblock}{Multi-lingual Information Retrieval}
+		The same document has multiple representations in different languages.
+		\begin{figure}
+			\includegraphics[height=1.5cm]{multi-lingual.png}
+		\end{figure}
+		\end{exampleblock}
+	\end{columns}
+\end{frame}
+
+% Compare traditional and multi-source clustering formulations
+\begin{frame}
+\frametitle{Limitation of Existing Clustering Methods }
+\begin{block}{}
+Existing clustering methods(K-means, Spectral, Hierarchical) assume we have datasets in the form of 2-D matrices.\\
+However, data sources are often multi-represented and hence they are heterogeneous.
+\end{block}
+	\begin{columns}
+	\column{.5\textwidth}
+	\begin{block}{Assumption of Traditional Clustering}
+		\includegraphics[height=3.5cm]{traditional_clustering.png}
+	\end{block}
+	\column{.5\textwidth}
+	\begin{block}{Formulation of Multi-source Clustering}
+		\includegraphics[height=3.5cm]{multi-source_clustering.png}
+	\end{block}
+	\end{columns}
+\end{frame}
+
+% Gene Expression Analysis
+\subsection{Why Multi-view}
+\begin{frame}
+\frametitle{Why Multi-view: Gene Expression Analysis}
+Cluster detection in gene databases to derive multiple functional roles...
+	\begin{columns}
+	\column{.65\textwidth}
+	\begin{itemize}
+		\item{Objects are genes described by their expression(behavior) under different conditions.}
+		\item{Aim: Groups of genes with similar function.}
+		\item{Challenge: One gene may have multiple functions}
+		\item{Biologically motivated: Clusters have to represent multiple functional roles for each object.}
+	\end{itemize}
+	\column{.35\textwidth}
+	\includegraphics[height=4cm]{gene_analysis.png}
+	\end{columns}
+\begin{block}{Clusters are hidden in different views on the data}
+Multiple clustering solutions required...
+\end{block}
+\end{frame}
+
+% Sensor Surveillance
+\begin{frame}
+\frametitle{Why Multi-view: Sensor Suveillance}
+Cluster detection in sensor networks to derive environmental conditions...
+	\begin{columns}
+	\column{.35\textwidth}
+		\includegraphics[height=4cm]{sensor.png}
+	\column{.65\textwidth}
+	\begin{itemize}
+		\item{Objects are sensor nodes described by their measurements.}
+		\item{Aim: Groups of sensors in similar environments.}
+		\item{Challenge: One cluster might represent high temperature, another cluster might represent low humidity}
+		\item{There is not a single perspective}
+	\end{itemize}
+	\end{columns}
+\begin{block}{Clusters are hidden in different views on the data}
+Multiple clustering solutions required...
+\end{block}
+\end{frame}
+
+% Text Analysis
+\begin{frame}
+\frametitle{Why Multi-view: Text Analysis}
+Detecting novel topics based on given knowledge...
+	\begin{columns}
+	\column{.65\textwidth}
+	\begin{itemize}
+		\item{Objects are text documents described by their content.}
+		\item{Aim: Groups of documents on similar topic.}
+		\item{Challenge: Some topics are well known(e.g. DB/DM/ML) In constrst, one is interesting in detecting novel topics not yet known.}
+		\item{There are multiple alternative clustering solutions.}
+	\end{itemize}
+	\column{.35\textwidth}
+		\includegraphics[height=4cm]{text_analysis.png}
+	\end{columns}
+\begin{block}{Multiple clusters describe alternative solutions}
+Multiple clustering solutions required
+\end{block}
+\end{frame}
+
+% Customer Segmentation
+\begin{frame}
+\frametitle{Why Multi-view: Customer Segmentation}
+Derive new customer's interests according to existing customer.
+	\begin{columns}
+	\column{.35\textwidth}
+		\includegraphics[height=4cm]{customer_segmentation.png}
+	\column{.65\textwidth}
+	\begin{itemize}
+		\item{Objects are customers described by profiles.}
+		\item{Aim: Groups of customers with similar behavior.}
+		\item{Challenge: Customers show common musical interest but show different sport activities}
+		\item{Customers seem to be unique on all available attributes, but show multiple grouping considering subsets of the attributes.}
+	\end{itemize}
+	\end{columns}
+\begin{block}{Multiple clusterings hidden in projections of the data}
+Multiple clustering solutions required...
+\end{block}
+\end{frame}
+
+% Compare traditional and multi-view
+\begin{frame}
+\frametitle{Limitation of Existing Clustering Methods}
+\begin{block}{}
+Existing clustering methods assume there's a single solution.
+However, multiple clustering solutions are required in applications.
+\end{block}
+	\begin{columns}
+	\column{.5\textwidth}
+	\begin{block}{Assumption of Traditional Clustering}
+		\includegraphics[height=3.5cm]{traditional_clustering.png}
+	\end{block}
+	\column{.5\textwidth}
+	\begin{block}{Formulation of Multi-view Clustering}
+		\includegraphics[height=3.5cm]{multiple_clustering_solutions.png}
+	\end{block}
+	\end{columns}
+\end{frame}
+
+% Introdution of Spectral Clustering
+\section{Introduction of Spectral Clustering}
+\subsection{Representation and Notation}
+\begin{frame}
+\frametitle{Spectral Clustering: Representation}
+\begin{block}{Similarity Graph}
+Given dataset $\{x_1,x_2,..., x_n\}$ and some kernel function $k(x_i,x_j)$ that measures similarity between all pairs of data points $x_i$ and $x_j$.\\
+We can construct a \textbf{similarity graph} $G=(V,E)$.\\
+\begin{itemize}
+	\item{Each vertex $v_i\in V$ represents a data point $x_i$}
+	\item{Each edge $e_{ij}\in E$ represents the similarity between $x_i$ and $x_j$}
+\end{itemize}
+\end{block}
+\begin{block}{Reformulation of Clustering Problem}
+We want to find a partition of the graph such that the edges between different groups have very low weights(which means that points in different clusters are dissimiliar from each other) and the edges within a group have high weights(which means that points within the same cluster are similar to each other)
+\end{block}
+\end{frame}
+
+%\subsection{Notation}
+\begin{frame}
+\frametitle{Spectral Clustering: Notation}
+$K\in \mathbb{R}^{n\times n}$: similarity(kernel) matrix, $K_{ij}=k(x_i,x_j)$;\\
+$D\in \mathbb{R}^{n\times n}$: degree matrix(diagonal), $D_{ii}=\sum_{j=1}^{n}K_{ij}$;\\
+$L\in \mathbb{R}^{n\times n}$: unnormalized graph Laplacian matrix, $L=D-K$;\\
+$L_{sym}\in \mathbb{R}^{n\times n}$: normalized graph Laplacian matrix, \\
+$\qquad\qquad\qquad L_{sym}=D^{-1/2}LD^{-1/2}$;\\
+
+\begin{proposition}[Number of connected components and spectra of $L_{sym}$]
+Let $G$ be an undirected graph with non-negative weights. Then the multiplicity k of the eigenvalue 0 of $L_{sym}$ euqals the number of connected components $A_1,\cdots,A_k$ in the graph. For $L_{sym}$, the eigenspace of 0 is spanned by the vectors $D^{1/2}\mathbf{1}_{A_i}$.
+\end{proposition}
+\end{frame}
+
+% Problem Formulation
+\subsection{Problem Formulation}
+\begin{frame}
+\frametitle{Spectral Clustering: Problem Formulation}
+Based on the intuition and represention above, spectral clustering tries to solve the following optimization aproblem.
+\begin{block}{}
+\begin{equation}
+\max_{U\in \mathbb{R}^{n\times k}}\Tr(U^{T}D^{-1/2}KD^{-1/2}U),\qquad U^{T}U=\mathds{I}
+\end{equation}
+\end{block}
+\begin{block}{Normalized Spectral Clustering(Ng,Jordan, and Weiss(2002))}
+Input: similarity matrix $K$, number of clusters $k$.
+\begin{enumerate}
+	\item{Construct degree matrix $D$ from $K$};
+	\item{Compute the $k$ largest eigenvectors of $D^{-1/2}KD^{-1/2}$, arrange them in columns to obtain $U\in\mathbb{R}^{n\times k}$};
+	\item{Form the matrix $T\in\mathbb{R}^{n\times k}$ from $U$ by normalizing the rows};
+	\item{Cluster rows of T with k-means to get clusters $C_1,\cdots,C_k$}.
+\end{enumerate}
+Output: Clusters $A_1,\cdots,A_k$ with $A_i=\{j|T_{i,:}\in C_i\}$	
+\end{block}
+\end{frame}
+
+% Co-regularized Multi-source Spectral Clustering
+\section{Co-regularized Multi-source Spectral Clustering}
+\subsection{General Idea of Multi-Source Clustering}
+\begin{frame}
+\frametitle{General Idea of Multi-source One-solution Problems}
+\begin{block}{}
+Aim: determine a clustering that is consistent with all sources\\
+Idea: train different hypotheses from the different sources, which bootstrap by providing each other with parameters\\
+Consensus between all hypotheses and all sources is achieved.\\
+\end{block}
+\begin{block}{General Assumptions}
+\begin{columns}
+\column{.65\textwidth}
+	\begin{enumerate}
+		\item{Each source in itself is sufficient for a single clustering solution}
+		\item{All sources are compatible}
+		\item{All sources are conditionally independent}
+	\end{enumerate}
+\column{.35\textwidth}
+\includegraphics[height=3cm]{multi-source_assumption.png}
+\end{columns}
+\end{block}
+
+\end{frame}
+% Pairwise case
+\subsection{Pairwise Co-regularization}
+\begin{frame}
+\frametitle{Multi-source: Pairwise Co-regularization}
+\begin{block}{Problem Formulation}
+\begin{multline}
+\max_{\substack{U^{(v)}\in\mathbb{R}^{n\times k}\\
+			      U^{(w)}\in\mathbb{R}^{n\times k}}}\Tr(U^{(v)^T}L^{(v)}U^{(v)})+\Tr(U^{(w)^T}L^{(w)}U^{(w)})-\lambda\cdot D(U^{(v)},U^{(w)})\\
+			 s.t. U^{(v)^T}U^{(v)}=\mathds{I},\quad U^{(w)^T}U^{(w)}=\mathds{I}
+\end{multline}
+Where $D(U^{(v)},U^{(w)})$ = $\big\| \frac{K_{U^{(v)}}}{\|K_{U^{(v)}}\|_F^2}-\frac{K_{U^{(w)}}}{\|K_{U^{(w)}}\|_F^2} \big\|_F^{2}$ is a cost function measure disagreement between clustering of two sources.
+For notation simplicity,here we let $L^{(v)}=(D^{(v)})^{-1/2}K^{(v)}(D^{(v)})^{-1/2}$
+\end{block}
+
+\begin{block}{}
+\begin{equation}
+\max Q+S
+\end{equation}
+Where $Q$ is clustering quality metric, $S$ measures agreement between clustering results obtained from two sources.
+\end{block}
+\end{frame}
+
+\begin{frame}
+\frametitle{Multi-source: Pairwise Co-regularization}
+We choose linear kernel for the computation of disagreement function. Then we have $K_{U^{(v)}}=U^{(v)}U^{(v)^T}$.
+Reasons for choosing linear kernel:
+\begin{itemize}
+	\item{The similarity measure used in Laplacian for spectral clustering has already taken care of non-linearities present in the data}
+	\item{We get a nice opimization problem by using linear kernel for $U^{(\cdot)}$}
+\end{itemize}
+\begin{block}{}
+	\begin{equation}
+		D(U^{(v)},U^{(w)})=-\Tr(U^{(v)}U^{(v)^T}U^{(w)}U^{(w)^T})
+	\end{equation}
+\end{block}
+Combine Equation 2 and 4, we have
+\begin{block}{}
+\begin{IEEEeqnarray}{lCl}
+\max_{\substack{U^{(v)}\in\mathbb{R}^{n\times k}\\
+			      U^{(w)}\in\mathbb{R}^{n\times k}}}\Tr(U^{(v)^T}L^{(v)}U^{(v)})+\Tr(U^{(w)^T}L^{(w)}U^{(w)})+\\{\nonumber}
+			      \lambda\Tr(U^{(v)}U^{(v)^T}U^{(w)}U^{(w)^T})\\{\nonumber}
+			 s.t. U^{(v)^T}U^{(v)}=\mathds{I},\quad U^{(w)^T}U^{(w)}=\mathds{I}
+\end{IEEEeqnarray}
+\end{block}
+\end{frame}
+
+% Final Formulation of pairwise case
+\begin{frame}
+\frametitle{Multi-source: Pairwise Co-regularization}
+The joint optimization problem given by Equation 5 could be solved using alternating maximization w.r.t. $U^{(v)}$ and $U^{(w)}$. For a given $U^{(w)}$,we get the following optimization problem in $U^{(v)}$:
+\begin{block}{}
+	\begin{equation}
+ 	\max_{U^{(v)}\in\mathbb{R}^{n\times k}}\Tr\{U^{(v)^T}(L^{(v)}+\lambda U^{(w)}U^{(w)^T})U^{(v)}\},\qquad s.t. U^{(v)^T}U^{(v)}=\mathds{I}
+	\end{equation}
+\end{block}
+This is a standard spectral clustering objective on view $v$ with graph Laplacian $L^{(v)}+\lambda U^{(w)}U^{(w)^T}$.This combination is adaptive since $U^{(w)}$ keeps getting updated at each step.
+\end{frame}
+
+% Extension to multiple sources
+\subsection{Extension to Multiple Sources}
+\begin{frame}
+\frametitle{Multi-source: Extension to Multiple Sources}
+We can extend the co-regularized spectral clustering for more than two sources. This can be done by employing pair-wise co-regularizers in the objective function of Eqation 2. For $m$ number of sources, we have
+\begin{block}{}
+\begin{equation}
+	\max_{U^{(1)}\cdots U^{(m)}\in\mathbb{R}^{n\times k}}\sum_{v=1}^m\Tr(U^{(v)^T}L^{(v)}U^{(v)})+\lambda\sum_{\substack{1\leq v,w\leq m\\
+						   v\neq w}}\Tr(U^{(v)}U^{(v)^T}U^{(w)}U^{(w)^T})
+\end{equation}
+s.t. $U^{(v)^T}U^{(v)}=\mathds{I},\quad \forall~ 1\leq v\leq V$
+\end{block}
+Similaiar to the two-source case, we can optimize it by alternating maximization cycling over the sources. With all but one $U^{(v)}$ fixed, we have the following optimization problem
+\begin{equation}
+\max_{U^{(v)}}\Tr\{U^{(v)^T}(L^{(v)}+\lambda\sum_{\substack{1\leq v,w\leq m\\
+						   v\neq w}}U^{(w)}U^{(w)^T})U^{(v)}\},s.t. U^{(v)^T}U^{(v)}=\mathds{I}
+\end{equation}
+\end{frame}
+
+% Multi-source Performance
+\subsection{Performance}
+\begin{frame}
+\frametitle{Multi-source: Performance}
+\includegraphics[height=6cm]{experiment_result_multi-source.png}
+\end{frame}
+
+% Multi-view 
+\section{Multiple Non-Redundant Spectral Clustering}
+\subsection{General Idea of Multi-view Cluetering}
+\begin{frame}
+\frametitle{General Idea of One-source Multi-view Problems}
+	\begin{block}{Gaols and objectives}
+	\begin{itemize}
+		\item{Each object should be grouped in multiple clusters, representing different perspective on the data.}
+		\item{The result should consist of many alternative solution. Users may choose one or use multiple of these solutions.}
+		\item{Solutions should differ to a high extend, and thus, each of these solutions provides additional knowledge.}
+	\end{itemize}
+Overall, enhanced extraction of knowledge.
+	\end{block}
+	\begin{block}{Abstract Problem Definition}
+	Aim: Detect clusterings $Clust_1,\cdots,Clust_m$ such that
+		\begin{itemize}
+			\item{$Q(Clust_i)$ is high $\forall i\in\{1,\cdots,m\}$ }
+			\item{$Diss(Clust_i,Clust_j)$ is high $\forall i,j\in\{1,\cdots,m\},i\neq j$}
+		\end{itemize}
+	\end{block}
+\end{frame}
+\subsection{Problem Formulation}
+\begin{frame}
+\frametitle{Multi-view: Non-Redundant Spectral Clustering}
+\begin{block}{Notation}
+\begin{itemize}
+\item{$W_q\in\mathbb{R}^{d\times q}$ is a transformation matrix for each view that transforms $x_i\in\mathbb{R}^d$ in the original space to a lower-dimensional space $l_q$ $(l_q\leq d,\sum_ql_q\leq d).$}
+\item{$\HSIC(W_q^Tx,W_r^Tx)$ measure the redundancy between two views.}
+\end{itemize}
+\end{block}
+\begin{block}{Formulation}
+\begin{equation}
+\max_{U_1\cdots U_m,W_1\cdots W_m}\sum_{q}\Tr(U_q^TD_q^{-1/2}K_qD_q^{-1/2}U_q)-\lambda\sum_{q\neq r}\HSIC(W_q^Tx,W_r^Tx)
+\end{equation}
+s.t. $U_q^TU_q=\mathds{I},\qquad (K_q)_{ij}=k_q(W_q^Tx_i,W_q^Tx_j),\qquad W_q^TW_q=\mathds{I}$
+\end{block}
+\end{frame}
+
+% Multi-view performance
+\subsection{Performance}
+\begin{frame}
+\frametitle{Multi-view: Performance}
+\includegraphics[height=2.7cm]{experiment_result_multi-view.png}
+\end{frame}
+
+\section{Conclusion and Future Work}
+% Conclusion
+\subsection{Conclusion}
+\begin{frame}
+\frametitle{Conclusion}
+	\begin{block}{Multi-source}
+	\end{block}
+	Based on the assumption that different views admit same underlying clustering of the data, we can look for clusterings that are consistent across different sources. The result is more accurate than the ones obtained using the individual sources.
+	\begin{exampleblock}{Multi-view}
+	Give data that is multi-faced by nature, we can discover multiple non-redundant clusterings reside in different lower dimensional subspaces. Thus we can provide multiple interpretations for different applications.
+	\end{exampleblock}
+\end{frame}
+
+% Future work
+\subsection{Future Work}
+\begin{frame}
+\frametitle{Future Work}
+\begin{block}{Multi-source Multi-view Clustering}
+	\begin{columns}
+	\column{.45\textwidth}
+		Basic taxonomy:\\
+		\begin{itemize}
+			\item{traditonal clustering: ONE database, ONE clustering}
+			\item{Multi-view clusterings: ONE database, MULTIPLE clusterings}
+			\item{Muti-source clustering: MULTIPLE databases, ONE clustering}
+			\item{Multi-source Multi-view clustering: MULTIPLE databases, MULTIPLE clusterings}
+		\end{itemize}
+	\column{.55\textwidth}
+		\includegraphics[height=5cm]{multi-source_multi-view_clustering.png}
+	\end{columns}
+\end{block}
+\end{frame}
+
+% Application: COPDGene Project
+\begin{frame}
+\frametitle{Multi-source Multi-view Motivation: COPDGene Project}
+\begin{block}{Multi-source: Clinical, Genetics, Images, Questionnaires}
+	\begin{columns}
+		\column{.45\textwidth}
+			\includegraphics[height=2.5cm]{source_clinical.png}
+		\column{.45\textwidth}
+			\includegraphics[height=2.5cm]{source_genetic.png}
+	\end{columns}
+	\begin{columns}
+		\column{.45\textwidth}
+			\includegraphics[height=2.5cm]{source_image.png}
+		\column{.45\textwidth}
+			\includegraphics[height=2.5cm]{source_questionnaires.png}
+	\end{columns}
+\end{block}
+
+\begin{block}{Multi-view: Different Disease Axes}
+	\begin{itemize}
+		\item{Airway Disease}
+		\item{Emphysema Disease, etc}
+	\end{itemize}
+\end{block}
+
+\end{frame}
+
+% References
+\begin{frame}
+\frametitle{References}
+\end{frame}
+\end{document}
