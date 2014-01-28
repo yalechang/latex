@@ -1,0 +1,129 @@
+\documentclass[11pt]{article}
+
+% Doc info
+\title{\textbf{NBS on ECLIPSE Gene Expression Data}}
+\author{Yale Chang}
+
+% Packages
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{url}
+
+% Define new command
+\newcommand{\tab}[1]{\hspace{.05\textwidth}\rlap{#1}}
+\newcommand{\Tr}{\mathrm{Tr}}
+\newcommand{\E}{\mathrm{E}}
+\newcommand{\cov}{\mathrm{Cov}}
+\newcommand{\corr}{\mathrm{Corr}}
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+
+\begin{document}
+\maketitle
+
+% Introduction
+\section{Introduction}
+An algorithm called Network-based stratification(NBS)\cite{nbs} has been applied on patients' somatic mutation profile to find better subtype structure among patients as well as common latent factors, which is called metagenes, behind large number of genes through integrating prior knowledge contained in gene interaction network . To explore whether this approach can be extended to COPDGene study, where gene expression data for patients is available, we run the following experiments.\\
+\\
+First, standard non-negative matrix factorization(NMF) is applied on our original dataset.\\
+\\
+Second, we run NBS once for our dataset. Note that the input for NBS is the integration of original dataset and gene interaction network.\\
+\\
+Third, NBS is combined with consensus clustering to get a final clustering assignment for patients.
+
+% Dataset
+\section{Dataset}
+\subsection{Gene Expression Data}
+The gene expression data we have comes from ECLIPSE study\cite{eclipse}. We can represent the dataset as a $p\times n$ matrix $X$, where $p$ is the number of a patient's genes and $n$ is the number of patients. Note that in the data matrix each column represents a patient. For the dataset we use to run the subsequent experiments, $p=49,n=121$. 
+\subsection{Gene Interaction Network}
+We use STRING gene interaction network\cite{string} for the experiment. The network has been preprocessed by Hofree,et.al\cite{nbs_code}. We denote the adjacency matrix of this network as a $d\times d$ matrix $A$, where $d=12233$ is the number of nodes(genes) in network. \\
+\\
+Each node can be identified by three kinds of identifiers: HGNC symbol, Entrez ID and Ensembl ID. For example, the human gene which has HGNC symbol ``ALDOB" can also be identified by Entrez ID ``229" as well as Ensembl ID ``ENSG00000136872". There're standard tools to do these conversions\cite{hgnc}.
+\subsection{Overlap between Patients' Genes and STRING Genes}
+Among the 49 genes we consider for the 121 COPD patients, the number of genes that appear in processed STRING gene interaction network is 31. Their corresponding HGNC symbols are as following:\\
+\\
+\textit{`ALDOB'\tab `ANKFY1'\tab `CALCR'\tab `CATSPERB'\tab `CBX5'\tab `CCT8'\tab \\
+`CH25H'\tab `CXCL12'\tab `CYP4A22'\tab `F11'\tab `FAM161A'\tab `FGL1'\tab \\
+`GABRA4'\tab `GNG12'\tab `HOXB6'\tab `IPO11'\tab `LCE3D'\tab `MTNR1B'\tab \\
+`NAT2'\tab `NDUFB1'\tab `NR4A3'\tab `PVR'\tab `PVRL4'\tab `RASGRF1'\tab \\
+`RGS5'\tab `RSPO1'\tab `SLC26A7'\tab `SYCP2'\tab `SYT8'\tab `THRA'\tab `TPPP2'}
+
+\subsection{Influence Matrix Derived From STRING Network}
+From the $12233\times 12233$ gene interaction network $A$, an influence matrix $S$ that has the same size can be built\cite{nbs_code}. A diffusion process is defined in \cite{influence} to generate $S$ from $A$. The influence matrix $S$ stores the similarity between pairwise genes in gene interaction network. The difference between $S$ and $A$ is: $A$ is a global while $S$ is local.\\
+\\
+After setting the number of nearest neighbors, we can build a sparse matrix $S^*$ from $S$. The graph Laplacian of matrix $S^*$ can be derived by $K=D-S^*$, where $K$ represent graph Laplacian and $D$ represents the degree matrix of $S^*$. In NBS, graph Laplacian matrix $K$ can be used to make low embedding matrix respects local gene topology. The degree to which local gene topology is respected can be controlled by setting the number of nearest neighbors. However, the experiment in NBS paper shows that the clustering results are not sensitive to this value. A recommended value is $11$.
+
+% Standard NMF
+\section{Standard NMF}
+\subsection{Formulation}
+\begin{equation}
+	\underset{W,H>0}\min||X-WH||_F^2
+\end{equation}
+\textbf{Notation:}\\
+\begin{itemize}
+	\item{$X$ is a $p\times n$ data matrix, where each column represents a patient with $p$ genes. In our case, we have $n=121,p=49$.}
+	\item{$q$ is the number of latent factors(metagenes). In our case, we set $q=4$.}
+	\item{Each column of $W$ represents a latent factor, which can be written as a linear combination of $p$ original genes.}
+	\item{$H$ represents the low embedding matrix for patients. Each column represents low dimensional embedding for one patient.}
+\end{itemize}
+\subsection{Experiment Results}
+We run NMF and look at matrix $W$ as well as clustering of patients based on matrix $H$. We simply assign each patient to the cluster corresponding to the largest coefficient. We use NNLS NMF package\cite{nnls} to solve NMF.
+\begin{itemize}
+	\item{$W$ is stored in \textbf{`NMF\_W.csv'}}
+	\item{$H$ is stored in \textbf{`NMF\_H.csv'}}
+	\item{Cluster labels for $n$ patients is stored in \textbf{`NMF\_labels.csv'}}
+	\item{The Reconstruction Error is $1.4816e+01$}
+\end{itemize}
+
+% NBS without consensus clustering
+\section{NBS without consensus clustering}
+\subsection{Formulation\label{nbs_single}}
+\begin{equation}
+\underset{W,H>0}\min ||F-WH||_F^2+\Tr(W^TKW)
+\end{equation}
+\textbf{Notations:}
+\begin{itemize}
+	\item{$F\in \mathbb{R}_+^{d\times n}$ is the matrix of $d$ genes $\times$ $n$ patients.}
+	\item{$W\in\mathbb{R}_+^{d\times q}$ is the the matrix of $d$ genes $\times$ $q$ metagenes.}
+	\item{$H\in\mathbb{R}_+^{q\times n}$ is the matrix of $q$ metagenes $\times$ $n$ patients.}
+	\item{$K\in\mathbb{R}^{d\times d}$ is the $d$ genes $\times$ $d$ genes graph Laplacian matrix of the influence matrix derived from original gene interaction network. Therefore, the second term controls the degree to which the low dimensional embedding of genes(matrix $W$) respects local gene topology.}
+\end{itemize}
+Note that we get $d\times n$ matrix $F$ from smoothing the original $q\times n$ gene expression matrix $X$. The details are as following:
+\begin{enumerate}
+	\item{Each patient has a $p\times 1$ gene vector, which can be mapped to the corresponding gene nodes in $d\times d$ gene interaction network.}
+	\item{Then a new $d\times 1$ gene vector is constructed for each patient to replace the original $p\times 1$ gene vector. Genes of each patient's $p$ genes that appear in the interaction network are kept and indexed using $d$ node indices in gene interaction network. Other positions of the patient's $d\times 1$ gene vector are simply set to be zeros. Therefore, we can get a $d\times n$ data matrix $F_0$, which is very sparse.}
+	\item{Smoothing \cite{prop}\cite{zhou} is carried out by applying $F_{t+1} = \alpha AF_t +(1-\alpha)F_0$, where A is the $d\times d$ normalized gene interaction network, $\alpha$ is usually set to be 0.7. Iterate this update process till convergence. Let's denote the resulting $d\times n$ data matrix as $F$, which is no longer sparse and can be used as input for NBS presented in the formulation above.}
+\end{enumerate} 
+\subsection{Experiment Result}
+We set the number of latent factors $q=4$ and smoothing parameter $\alpha=0.7$.\\
+\begin{itemize}
+	\item{$W$ is stored in \textbf{`NBS\_without\_CC\_W.csv'}}
+	\item{$H$ is stored in \textbf{`NBS\_without\_CC\_H.csv'}}
+	\item{Cluster labels for $n$ patients is stored in \textbf{``NBS\_without\_CC\_labels.csv''}}
+\end{itemize}
+
+
+% NBS with consensus clustering
+\section{NBS with consensus clustering}
+As is described in \cite{nbs}, the optimization algorithm used can only find a local optimal solution and a single run of NBS cannot guarantee a global optimal solution. Therefore, it's a standard practice to run NBS with a consensus clustering. We use the formulation presented in section \ref{nbs_single} to derive a clustering of patients. In order to ensure robust clustering assignments for patients, NBS was performed 100 times on subsamples of the dataset. In each subsample, we sampled 80\% of the patients and 80\% of the genes at random without replacement. The set of clustering assignments for the 100 samples was then tranformed into a co-clustering matrix $C$. This matrix records the frequency with which each patient pair was observed to have membership in the same subtype over all clustering iterations in which both patients of the pair were sampled. The result is a similarity matrix of patients, which can be used to cluster the patients by applying either average liknage hierarchial clustering or a second symmetric NMF step. 
+\begin{itemize}
+	\item{$W$ results from $100$ runs are stacked in columns to form a $d\times (q\cdot n_{run})$ matrix, which is stored in \textbf{`NBS\_with\_CC\_W\_list.csv'}}.
+	\item{$H$ results from $100$ runs are stacked in rows to form a $(q\cdot n_{run})\times n$} matrix, which is stored in \textbf{'NBS\_with\_CC\_H\_list.csv'}.
+	\item{Cluster labels for $n$ patients is stored in \textbf{``NBS\_with\_CC\_labels.csv''}}
+\end{itemize}
+
+% Reference
+\begin{thebibliography}{9}
+\bibitem{nbs}Hofree, Matan, et al. ``Network-based stratification of tumor mutations." Nature methods (2013).\\[-20pt]
+\bibitem{eclipse}\url{http://www.eclipse-copd.com/}\\[-20pt]
+\bibitem{string}\url{http://string-db.org/}\\[-20pt]
+\bibitem{nbs_code}\url{http://chianti.ucsd.edu/~mhofree/NBS/}\\[-20pt]
+\bibitem{hgnc}\url{http://www.genenames.org/}\\[-20pt]
+\bibitem{influence}Vandin, Fabio, Eli Upfal, and Benjamin J. Raphael. ``Algorithms for detecting significantly mutated pathways in cancer." Journal of Computational Biology 18.3 (2011): 507-522.\\[-20pt]
+\bibitem{nnls}\url{https://sites.google.com/site/nmftool/}\\[-20pt]
+\bibitem{prop}Vanunu, Oron, et al. ``Associating genes and protein complexes with disease via network propagation." PLoS computational biology 6.1 (2010): e1000641.\\[-20pt]
+\bibitem{zhou}Zhou, Dengyong, et al. ``Learning with local and global consistency." Advances in neural information processing systems 16.16 (2004): 321-328.\\[-20pt]
+\end{thebibliography}
+
+\end{document}
